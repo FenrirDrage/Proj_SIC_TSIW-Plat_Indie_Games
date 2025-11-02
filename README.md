@@ -101,32 +101,32 @@ indiehub/
 
 Certifica-te que tens **Docker** e **Docker Compose** instalados, e depois:
 
-```bash
+```
 docker-compose up --build
-
+```
 
 Os serviços serão lançados nas seguintes portas:
-
+```
 Serviço	            Porta	Endpoint
 API Gateway	        8080	http://localhost:8080
 Auth Service	    4001	http://localhost:4001
 Game Service	    4002	http://localhost:4002
 Review Service	    4003	http://localhost:4003
 Analytics Service	4004	http://localhost:4004/graphql
-
+```
 2. Execução Manual (sem Docker)
 
 Cada microserviço pode ser executado individualmente:
-
-cd auth-service
-npm install
-npm run dev
+    
+    cd auth-service
+    npm install
+    npm run dev
 
 Para o Review Service (Python):
-
-cd review-service
-pip install -r requirements.txt
-uvicorn app.main:app --reload --port 4003
+    
+    cd review-service
+    pip install -r requirements.txt
+    uvicorn app.main:app --reload --port 4003
 
 ---
 
@@ -197,6 +197,6 @@ Podes utilizar o código como base de estudo, desde que mantenhas os devidos cr�
 
 👥 Autores
 
-Sérgio Alves
+[@Sérgio Alves](https://github.com/FenrirDrage)
 [@Beatriz Costa](https://github.com/xbeatriz)
 Desenvolvido no âmbito de projeto académico — ESMAD, TSIW 2025
