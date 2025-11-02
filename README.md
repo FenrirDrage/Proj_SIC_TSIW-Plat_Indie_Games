@@ -17,10 +17,6 @@ A plataforma é composta por cinco serviços principais:
 | 💬 Review Service | Python + FastAPI | MongoDB | Sistema de reviews e classificações |
 | 📊 Analytics Service | Node.js + Apollo GraphQL | — | Agregação e estatísticas de jogos e utilizadores |
 
-<p align="center">
-  <img src="https://raw.githubusercontent.com/user/repo/main/docs/architecture-diagram.png" alt="Diagrama de Arquitetura" width="600">
-</p>
-
 ---
 
 ## 🧠 Objetivo do Projeto
@@ -33,20 +29,20 @@ A IndieHub foi desenvolvida como parte de um projeto académico com foco em:
 
 ---
 
-## ⚙️ Tecnologias Utilizadas
+##  Tecnologias Utilizadas
 
-### 🟢 Backend
+###  Backend
 - Node.js + Express
 - Python + FastAPI
 - Apollo GraphQL (Analytics)
 - JWT (JSON Web Token)
 - Docker & Docker Compose
 
-### 🗄️ Bases de Dados
+###  Bases de Dados
 - MongoDB (Auth, Review)
 - PostgreSQL (Games)
 
-### 🧰 Outras Ferramentas
+###  Outras Ferramentas
 - Swagger / OpenAPI (documentação)
 - Axios / HTTPX (comunicação entre serviços)
 - bcryptjs (hashing de passwords)
@@ -54,7 +50,7 @@ A IndieHub foi desenvolvida como parte de um projeto académico com foco em:
 
 ---
 
-## 📂 Estrutura do Projeto
+##  Estrutura do Projeto
 
 ```
 indiehub/
@@ -99,9 +95,9 @@ indiehub/
 
 ---
 
-## 🚀 Execução do Projeto
+##  Execução do Projeto
 
-### 🐳 1. Via Docker Compose
+###  1. Via Docker Compose
 
 Certifica-te que tens **Docker** e **Docker Compose** instalados, e depois:
 
