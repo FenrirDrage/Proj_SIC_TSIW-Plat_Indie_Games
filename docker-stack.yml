@@ -1,0 +1,154 @@
+version: "3.9"
+
+services:
+  # =============================
+  # API GATEWAY
+  # =============================
+  api-gateway:
+    image: indiehub/api-gateway:latest
+    build: ./api-gateway
+    ports:
+      - "8080:8080"
+    environment:
+      PORT: 8080
+      AUTH_URL: http://auth-service:4001
+      GAME_URL: http://game-service:4002
+      REVIEW_URL: http://review-service:4003
+      ANALYTICS_URL: http://analytics-service:4004
+    networks:
+      - indiehub-net
+    deploy:
+      replicas: 3
+      restart_policy:
+        condition: on-failure
+      update_config:
+        parallelism: 1
+        delay: 10s
+      placement:
+        constraints: [node.role == worker]
+
+  # =============================
+  # AUTH SERVICE
+  # =============================
+  auth-service:
+    image: indiehub/auth-service:latest
+    build: ./auth-service
+    environment:
+      PORT: 4001
+      MONGO_URL: mongodb://auth-mongo:27017/authdb
+      JWT_SECRET: supersecret
+    networks:
+      - indiehub-net
+    depends_on:
+      - auth-mongo
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+
+  auth-mongo:
+    image: mongo:6
+    volumes:
+      - auth-mongo-data:/data/db
+    networks:
+      - indiehub-net
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+
+  # =============================
+  # GAME SERVICE
+  # =============================
+  game-service:
+    image: indiehub/game-service:latest
+    build: ./game-service
+    environment:
+      PORT: 4002
+      PG_HOST: games-postgres
+      PG_PORT: 5432
+      PG_USER: postgres
+      PG_PASSWORD: postgres
+      PG_DB: gamesdb
+    networks:
+      - indiehub-net
+    depends_on:
+      - games-postgres
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+
+  games-postgres:
+    image: postgres:15
+    environment:
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gamesdb
+    volumes:
+      - games-postgres-data:/var/lib/postgresql/data
+    networks:
+      - indiehub-net
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+
+  # =============================
+  # REVIEW SERVICE (Python)
+  # =============================
+  review-service:
+    image: indiehub/review-service:latest
+    build: ./review-service
+    environment:
+      PORT: 4003
+      MONGO_URL: mongodb://review-mongo:27017/reviewsdb
+      AUTH_URL: http://auth-service:4001/auth/verify
+    networks:
+      - indiehub-net
+    depends_on:
+      - review-mongo
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+
+  review-mongo:
+    image: mongo:6
+    volumes:
+      - review-mongo-data:/data/db
+    networks:
+      - indiehub-net
+    deploy:
+      replicas: 1
+      placement:
+        constraints: [node.role == manager]
+
+  # =============================
+  # ANALYTICS SERVICE (GraphQL)
+  # =============================
+  analytics-service:
+    image: indiehub/analytics-service:latest
+    build: ./analytics-service
+    environment:
+      PORT: 4004
+      GAME_SERVICE_URL: http://game-service:4002
+      REVIEW_SERVICE_URL: http://review-service:4003
+    networks:
+      - indiehub-net
+    deploy:
+      replicas: 2
+      restart_policy:
+        condition: on-failure
+
+# =============================
+# NETWORKS & VOLUMES
+# =============================
+networks:
+  indiehub-net:
+    driver: overlay
+
+volumes:
+  auth-mongo-data:
+  review-mongo-data:
+  games-postgres-data:
