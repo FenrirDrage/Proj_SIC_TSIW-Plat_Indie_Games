@@ -1,0 +1,157 @@
+version: "3.9"
+
+services:
+  # =============================
+  # API GATEWAY
+  # =============================
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    ports:
+      - "8080:8080"
+    depends_on:
+      - auth-service
+      - game-service
+      - review-service
+      - analytics-service
+    environment:
+      - PORT=8080
+      - AUTH_URL=http://auth-service:4001
+      - GAME_URL=http://game-service:4002
+      - REVIEW_URL=http://review-service:4003
+      - ANALYTICS_URL=http://analytics-service:4004
+    networks:
+      - indiehub-network
+
+  # =============================
+  # AUTH SERVICE (Node + Mongo)
+  # =============================
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    environment:
+      - PORT=4001
+      - MONGO_URL=mongodb://auth-mongo:27017/authdb
+      - JWT_SECRET=supersecret
+    depends_on:
+      - auth-mongo
+    networks:
+      - indiehub-network
+
+  auth-mongo:
+    image: mongo:6
+    container_name: auth-mongo
+    volumes:
+      - auth-mongo-data:/data/db
+    ports:
+      - "27018:27017"
+    networks:
+      - indiehub-network
+
+  # =============================
+  # GAME SERVICE (Node + Postgres)
+  # =============================
+  game-service:
+    build: ./game-service
+    container_name: game-service
+    environment:
+      - PORT=4002
+      - PG_HOST=games-postgres
+      - PG_PORT=5432
+      - PG_USER=postgres
+      - PG_PASSWORD=postgres
+      - PG_DB=gamesdb
+    depends_on:
+      - games-postgres
+    networks:
+      - indiehub-network
+
+  games-postgres:
+    image: postgres:15
+    container_name: games-postgres
+    environment:
+      - POSTGRES_USER=postgres
+      - POSTGRES_PASSWORD=postgres
+      - POSTGRES_DB=gamesdb
+    volumes:
+      - games-postgres-data:/var/lib/postgresql/data
+    ports:
+      - "5433:5432"
+    networks:
+      - indiehub-network
+
+  adminer:
+    image: adminer
+    container_name: adminer
+    restart: always
+    ports:
+      - "8081:8080"
+    networks:
+      - indiehub-network
+
+  # =============================
+  # REVIEW SERVICE (Python + FastAPI + Mongo)
+  # =============================
+  review-service:
+    build: ./review-service
+    container_name: review-service
+    environment:
+      - PORT=4003
+      - MONGO_URL=mongodb://review-mongo:27017/reviewsdb
+      - AUTH_URL=http://auth-service:4001/auth/verify
+    depends_on:
+      - review-mongo
+      - auth-service
+    networks:
+      - indiehub-network
+
+  review-mongo:
+    image: mongo:6
+    container_name: review-mongo
+    volumes:
+      - review-mongo-data:/data/db
+    ports:
+      - "27019:27017"
+    networks:
+      - indiehub-network
+
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    restart: always
+    ports:
+      - "8082:8081"
+    environment:
+      - ME_CONFIG_MONGODB_URL=mongodb://review-mongo:27017/
+    networks:
+      - indiehub-network
+
+  # =============================
+  # ANALYTICS (Node + GraphQL)
+  # =============================
+  analytics-service:
+    build: ./analytics-service
+    container_name: analytics-service
+    ports:
+      - "4004:4004"
+    environment:
+      - PORT=4004
+      - GAME_SERVICE_URL=http://game-service:4002
+      - REVIEW_SERVICE_URL=http://review-service:4003
+    depends_on:
+      - game-service
+      - review-service
+    networks:
+      - indiehub-network
+
+# =============================
+# NETWORKS & VOLUMES
+# =============================
+networks:
+  indiehub-network:
+    driver: bridge
+
+volumes:
+  auth-mongo-data:
+  review-mongo-data:
+  games-postgres-data:
