@@ -4,6 +4,9 @@
 from datetime import datetime
 from bson import ObjectId
 from .database import reviews_collection
+import json
+import pika
+import os
 
 def to_dict(review):
     """Converte o documento Mongo em dicionário serializável"""
@@ -67,3 +70,25 @@ class ReviewService:
             return "forbidden"
         await reviews_collection.delete_one({"_id": ObjectId(review_id)})
         return True
+
+def publish_review_created(review: dict):
+    """
+    Publica evento de criação de review no RabbitMQ.
+    Comunicação assíncrona (fire-and-forget).
+    """
+    rabbitmq_host = os.getenv("RABBITMQ_HOST", "rabbitmq")
+
+    connection = pika.BlockingConnection(
+        pika.ConnectionParameters(host=rabbitmq_host)
+    )
+
+    channel = connection.channel()
+    channel.queue_declare(queue="review_events", durable=False)
+
+    channel.basic_publish(
+        exchange="",
+        routing_key="review_events",
+        body=json.dumps(review)
+    )
+
+    connection.close()
