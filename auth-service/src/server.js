@@ -13,6 +13,7 @@ const PORT = process.env.PORT || 4001;
 
 app.use(cors());
 app.use(express.json());
+//app.use(express.raw({ type: '*/*' }));
 
 // Ligação à base de dados MongoDB
 mongoose.connect(process.env.MONGO_URL || "mongodb://localhost:27017/auth-service")

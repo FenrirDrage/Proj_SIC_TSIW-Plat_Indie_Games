@@ -11,16 +11,17 @@ const ANALYTICS_URL = process.env.ANALYTICS_URL || "http://localhost:4004";
 
 // Proxy helper
 async function proxyRequest(req, res, targetBase) {
-  const targetUrl = `${targetBase}${req.originalUrl.replace(/^\/[^/]+/, "")}`; 
+  //const targetUrl = `${targetBase}${req.originalUrl.replace(/^\/[^/]+/, "")}`; 
+  const targetUrl = `${targetBase}${req.originalUrl}`;
   try {
     const axiosConfig = {
       url: targetUrl,
       method: req.method,
       //headers: { ...req.headers, host: undefined }, 
-      headers: { ...req.headers },
+      headers: { "content-type": "application/json", authorization: req.headers.authorization },
       params: req.query,
       data: req.body,
-      timeout: 15_000
+      timeout: 15000
     };
 
     const resp = await axios(axiosConfig);

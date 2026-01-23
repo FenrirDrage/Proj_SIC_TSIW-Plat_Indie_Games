@@ -6,9 +6,9 @@ export const authController = {
     try {
       const { username, email, password, role } = req.body;
       const result = await authService.register({ username, email, password, role });
-      res.status(201).json(result);
+      return res.status(201).json(result);
     } catch (err) {
-      res.status(400).json({ error: err.message });
+      return res.status(400).json({ error: err.message });
     }
   },
 
@@ -16,21 +16,23 @@ export const authController = {
     try {
       const { email, password } = req.body;
       const result = await authService.login({ email, password });
-      res.json(result);
+      return res.json(result);
     } catch (err) {
-      res.status(400).json({ error: err.message });
+      return res.status(400).json({ error: err.message });
     }
   },
 
   async verify(req, res) {
     try {
       const token = req.headers.authorization?.split(" ")[1];
-      if (!token) return res.status(401).json({ error: "Token not found" });
+      if (!token) {
+        return res.status(401).json({ error: "Token not found" });
+      }
 
       const user = await authService.verify(token);
-      res.json({ user });
+      return res.json({ user });
     } catch (err) {
-      res.status(401).json({ error: err.message });
+      return res.status(401).json({ error: err.message });
     }
   },
 
@@ -38,9 +40,9 @@ export const authController = {
     try {
       const token = req.headers.authorization?.split(" ")[1];
       const user = await authService.verify(token);
-      res.json(user);
+      return res.json(user);
     } catch (err) {
-      res.status(401).json({ error: err.message });
+      return res.status(401).json({ error: err.message });
     }
   },
 
@@ -49,9 +51,9 @@ export const authController = {
       const token = req.headers.authorization?.split(" ")[1];
       const user = await authService.verify(token);
       const updated = await authService.update(user._id, req.body);
-      res.json(updated);
+      return res.json(updated);
     } catch (err) {
-      res.status(400).json({ error: err.message });
+      return res.status(400).json({ error: err.message });
     }
   },
 
@@ -60,9 +62,9 @@ export const authController = {
       const token = req.headers.authorization?.split(" ")[1];
       const user = await authService.verify(token);
       await authService.remove(user._id);
-      res.json({ message: "Account deleted" });
+      return res.json({ message: "Account deleted" });
     } catch (err) {
-      res.status(400).json({ error: err.message });
+      return res.status(400).json({ error: err.message });
     }
   }
 };
