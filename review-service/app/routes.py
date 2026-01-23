@@ -4,7 +4,7 @@
 from fastapi import APIRouter, Depends, HTTPException
 from .models import ReviewCreate, ReviewUpdate, ReviewOut
 from .auth import get_current_user
-from .services import ReviewService
+from .service import ReviewService
 
 router = APIRouter(prefix="/reviews", tags=["Reviews"])
 

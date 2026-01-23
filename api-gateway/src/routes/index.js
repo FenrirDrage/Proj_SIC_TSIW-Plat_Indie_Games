@@ -16,7 +16,8 @@ async function proxyRequest(req, res, targetBase) {
     const axiosConfig = {
       url: targetUrl,
       method: req.method,
-      headers: { ...req.headers, host: undefined }, 
+      //headers: { ...req.headers, host: undefined }, 
+      headers: { ...req.headers },
       params: req.query,
       data: req.body,
       timeout: 15_000
@@ -41,7 +42,6 @@ router.use("/auth", (req, res) => proxyRequest(req, res, AUTH_URL));
 // Games endpoints
  
 router.get("/games*", (req, res) => proxyRequest(req, res, GAME_URL));
-router.get("/games/*", (req, res) => proxyRequest(req, res, GAME_URL));
 
 // Proteção POST/PUT/DELETE on /games
 

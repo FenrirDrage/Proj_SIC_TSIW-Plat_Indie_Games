@@ -15,7 +15,7 @@ app.use(cors());
 app.use(express.json());
 
 // Ligação à base de dados MongoDB
-mongoose.connect(process.env.MONGO_URI)
+mongoose.connect(process.env.MONGO_URL || "mongodb://localhost:27017/auth-service")
   .then(() => console.log("Connected to MongoDB"))
   .catch(err => console.error("Error connecting to MongoDB:", err));
 
