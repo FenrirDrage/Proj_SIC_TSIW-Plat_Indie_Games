@@ -37,7 +37,7 @@ services:
     restart: always
 
   auth-mongo:
-    image: mongo:6
+    image: mongo:6.0
     platform: linux/amd64
     volumes:
       - auth-mongo-data:/data/db
@@ -116,7 +116,7 @@ services:
     restart: always
 
   review-mongo:
-    image: bitnami/mongodb:6
+    image: bitnami/mongodb:latest
     platform: linux/amd64
     environment:
       - MONGODB_ROOT_PASSWORD=postgres
