@@ -1,52 +1,64 @@
-# 🎮 IndieHub - Plataforma de Jogos Indie
+# IndieHub - Plataforma de Jogos Indie
 
 **IndieHub** é uma plataforma moderna para **developers publicarem jogos indie** e para **jogadores explorarem, avaliarem e comentarem** os títulos disponíveis.  
 O projeto foi desenvolvido com uma **arquitetura de microserviços**, garantindo **escalabilidade**, **modularidade** e **resiliência**.
 
+Projeto desenvolvido em contexto académico (ESMAD – TSIW).
+
 ---
 
-## 🧩 Arquitetura de Microserviços
+## Arquitetura de Microserviços
 
-A plataforma é composta por cinco serviços principais:
+A aplicação segue o padrão **API Gateway + Microserviços independentes**, com um **single entry point** para toda a aplicação.
 
-| Serviço | Tecnologia | Base de Dados | Função |
-|----------|-------------|----------------|---------|
-| 🛡️ API Gateway | Node.js + Express | — | Roteia todas as requisições entre cliente e serviços |
-| 🔐 Auth Service | Node.js + Express | MongoDB | Registo, login, autenticação JWT |
+### Serviços principais
+
+| Serviço | Tecnologia | Base de Dados | Responsabilidade |
+|-------|------------|---------------|------------------|
+| 🛡️ API Gateway | Node.js + Express | — | Ponto único de entrada, proxy e autenticação |
+| 🔐 Auth Service | Node.js + Express | MongoDB | Registo, login e validação JWT |
 | 🎮 Game Service | Node.js + Express | PostgreSQL | CRUD de jogos indie |
-| 💬 Review Service | Python + FastAPI | MongoDB | Sistema de reviews e classificações |
-| 📊 Analytics Service | Node.js + Apollo GraphQL | — | Agregação e estatísticas de jogos e utilizadores |
+| 💬 Review Service | Python + FastAPI | MongoDB | Reviews e classificações |
+| 📊 Analytics Service | Node.js + GraphQL | — | Métricas e agregação de dados |
+| 🔔 Notification Service | Node.js | RabbitMQ | Processos assíncronos (notificações/eventos) |
+| 🐇 RabbitMQ | RabbitMQ | — | Message broker para eventos assíncronos |
 
 ---
 
-## 🧠 Objetivo do Projeto
+## Objetivo do Projeto
 
-A IndieHub foi desenvolvida como parte de um projeto académico com foco em:
-- Aplicar **conceitos de microserviços** e **integração entre múltiplas linguagens**;
-- Demonstrar o uso de **autenticação distribuída com JWT**;
-- Criar um sistema **escalável e modular**, com diferentes tipos de base de dados;
-- Explorar **GraphQL** para agregação de dados e análise de métricas.
+O objetivo da IndieHub é demonstrar:
+
+- Arquitetura **orientada a microserviços**
+- **Autenticação distribuída** com JWT
+- Integração de **múltiplas linguagens** (Node.js e Python)
+- Uso combinado de **bases de dados SQL e NoSQL**
+- Comunicação **síncrona (REST)** e **assíncrona (RabbitMQ)**
+- Escalabilidade com **Docker Compose / Swarm**
+- Documentação de APIs com **Swagger/OpenAPI**
 
 ---
 
 ##  Tecnologias Utilizadas
 
-###  Backend
+###  ### Backend
 - Node.js + Express
 - Python + FastAPI
-- Apollo GraphQL (Analytics)
+- Apollo GraphQL
 - JWT (JSON Web Token)
+- RabbitMQ
 - Docker & Docker Compose
 
-###  Bases de Dados
+### Bases de Dados
 - MongoDB (Auth, Review)
 - PostgreSQL (Games)
 
-###  Outras Ferramentas
-- Swagger / OpenAPI (documentação)
-- Axios / HTTPX (comunicação entre serviços)
-- bcryptjs (hashing de passwords)
-- dotenv (variáveis de ambiente)
+### Outras Ferramentas
+- Swagger / OpenAPI
+- Axios / HTTPX
+- bcryptjs
+- dotenv
+- Postman (testes)
 
 ---
 
@@ -71,16 +83,17 @@ indiehub/
 │
 ├── game-service/
 │ └── src/
-│ ├── routes/
 │ ├── controllers/
+│ ├── routes/
 │ ├── models/
-│ └── services/
+│ ├── services/
+│ └── middlewares/
 │
 ├── review-service/
 │ └── app/
 │ ├── main.py
 │ ├── routes.py
-│ ├── services.py
+│ ├── service.py
 │ ├── auth.py
 │ └── models.py
 │
@@ -90,19 +103,27 @@ indiehub/
 │ ├── resolvers.js
 │ └── services/
 │
-└── docker-compose.yml
+├── notification-service/
+│ └── src/
+│ ├── consumer.js
+│ └── rabbitmq.js
+│
+├── docker-compose.yml
+└── README.md
 ```
 
 ---
 
 ##  Execução do Projeto
 
-###  1. Via Docker Compose
+### Via Docker Compose
 
-Certifica-te que tens **Docker** e **Docker Compose** instalados, e depois:
+Pré-requisitos:
+- Docker
+- Docker Compose
 
-```
-docker-compose up --build
+```bash
+docker compose up --build
 ```
 
 Os serviços serão lançados nas seguintes portas:
@@ -113,27 +134,18 @@ Auth Service	    4001	http://localhost:4001
 Game Service	    4002	http://localhost:4002
 Review Service	    4003	http://localhost:4003
 Analytics Service	4004	http://localhost:4004/graphql
+RabbitMQ UI         15672   http://localhost:15672
 ```
-2. Execução Manual (sem Docker)
 
-Cada microserviço pode ser executado individualmente:
-    
-    cd auth-service
-    npm install
-    npm run dev
+Autenticação (JWT)
 
-Para o Review Service (Python):
-    
-    cd review-service
-    pip install -r requirements.txt
-    uvicorn app.main:app --reload --port 4003
+O sistema utiliza JWT distribuído:
 
----
+1. O token é gerado no Auth Service
 
-Autenticação
+2. O API Gateway valida e reencaminha o token
 
-O sistema utiliza JWT (JSON Web Token) para autenticação distribuída.
-O token é gerado no Auth Service e verificado nos outros microserviços via endpoint /auth/verify.
+3. Os restantes serviços confiam no token validado
 
 Exemplo de cabeçalho HTTP:
 
@@ -175,18 +187,63 @@ Analytics Service (GraphQL)
     userActivity(userId)	        Atividade de um utilizador
 
 ```   
+Processos Assíncronos (RabbitMQ)
+
+A plataforma utiliza RabbitMQ para comunicação assíncrona, permitindo:
+
+Processamento de eventos sem bloquear pedidos HTTP
+
+Escalabilidade independente
+
+Maior tolerância a falhas
+
+Exemplo de eventos:
+
+review_created
+
+game_created
+
+user_registered
+
+O Notification Service consome estes eventos e pode:
+
+Enviar notificações
+
+Atualizar métricas
+
+Alimentar o Analytics Service
+
+```
+Testes
+
+Os testes foram realizados com Postman, garantindo:
+
+- Envio correto de JSON
+
+- Headers apropriados
+
+- Testes com JWT
+
+Uma coleção Postman acompanha o projeto.
+```
 
 Decisões Técnicas
 
-Arquitetura de Microserviços: permite escalar e manter cada módulo de forma independente.
+- API Gateway: centraliza autenticação e routing
 
-Linguagens diferentes (Node.js e Python): demonstra interoperabilidade e integração heterogénea.
+- Microserviços independentes: escaláveis e isolados
 
-Bases de dados híbridas (SQL + NoSQL): combina estrutura relacional e flexibilidade de documentos.
+- Node.js + Python: interoperabilidade entre stacks
 
-GraphQL: simplifica a agregação de dados complexos, ideal para dashboards e análises.
+- SQL + NoSQL: flexibilidade e estrutura
 
-Docker: facilita a orquestração e isolamento de cada componente.
+- GraphQL: agregação eficiente de dados
+
+- RabbitMQ: desacoplamento e eventos assíncronos
+
+- Docker: consistência e portabilidade
+
+```
 
 Licença
 
@@ -200,3 +257,4 @@ Podes utilizar o código como base de estudo, desde que mantenhas os devidos cr�
 [@Sérgio Alves](https://github.com/FenrirDrage)
 [@Beatriz Costa](https://github.com/xbeatriz)
 Desenvolvido no âmbito de projeto académico — ESMAD, TSIW 2025
+
