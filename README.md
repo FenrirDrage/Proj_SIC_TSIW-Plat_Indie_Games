@@ -153,40 +153,256 @@ Authorization: Bearer <token_jwt>
 
 ---
 
-Endpoints Principais
+Endpoints Principais - acedido atraves de browser se: URL ou postman se: endpoint 
+# IndieHub – Microservices Platform
+
+Este README descreve **todas as chamadas atualizadas** da plataforma IndieHub, considerando o **API Gateway**, os **microserviços**, **GraphQL Analytics** e **eventos RabbitMQ**.
+
+---
+
+## 🌐 API Gateway
+
+Base URL:
+
 ```
-Auth Service
-    Método	    Rota	            Descrição
-    POST	    /auth/register	    Registar novo utilizador
-    POST	    /auth/login	        Efetuar login e obter token
-    POST	    /auth/verify	    Validar token JWT
-    GET	        /auth/profile	    Consultar perfil
-    PUT	        /auth/profile	    Atualizar dados
-    DELETE	    /auth/profile	    Eliminar conta
+http://localhost:8080
+```
 
-Game Service
-    Método	    Rota	            Descrição
-    GET	        /games	            Listar jogos
-    GET	        /games/:id	        Obter jogo específico
-    POST	    /games	            Criar novo jogo
-    PUT	        /games/:id	        Atualizar jogo
-    DELETE	    /games/:id	        Remover jogo
+O Gateway é o **single entry point**. Os prefixos são tratados conforme cada serviço.
 
-Review Service
-    Método	    Rota	            Descrição
-    POST	    /reviews	        Criar nova review
-    GET	        /reviews/game/{id}	Listar reviews de um jogo
-    GET	        /reviews/user/{id}	Listar reviews de um utilizador
-    PUT	        /reviews/{id}	    Atualizar review
-    DELETE	    /reviews/{id}	    Eliminar review
+---
 
-Analytics Service (GraphQL)
-    Query	                        Descrição
-    topGames(limit)	                Retorna os jogos mais bem avaliados
-    gameStats(gameId)	            Estatísticas detalhadas de um jogo
-    userActivity(userId)	        Atividade de um utilizador
+## 🔐 Auth Service
 
+<<<<<<< HEAD
+### Registar utilizador
+
+```
+POST /auth/register
+```
+
+Body:
+
+```json
+{
+  "username": "dev1",
+  "email": "dev1@email.com",
+  "password": "123456"
+}
+```
+
+---
+
+### Login
+
+```
+POST /auth/login
+```
+
+Body:
+
+```json
+{
+  "email": "dev1@email.com",
+  "password": "123456"
+}
+```
+
+Resposta:
+
+```json
+{
+  "token": "JWT_TOKEN"
+}
+```
+
+---
+
+## 🎮 Game Service (via Gateway)
+
+> O Gateway remove o prefixo `/games` antes de encaminhar para o serviço.
+
+### Listar jogos
+
+```
+GET /games
+```
+
+---
+
+### Obter jogo por ID
+
+```
+GET /games/:id
+```
+
+---
+
+### Criar jogo (🔒 developer)
+
+```
+POST /games
+```
+
+Headers:
+
+```
+Authorization: Bearer <TOKEN>
+```
+
+Body:
+
+```json
+{
+  "title": "Indie Quest",
+  "description": "RPG indie",
+  "genre": "RPG",
+  "price": 9.99
+}
+```
+
+---
+
+### Atualizar jogo (🔒 developer)
+
+```
+PUT /games/:id
+```
+
+---
+
+### Apagar jogo (🔒 developer)
+
+```
+DELETE /games/:id
+```
+
+---
+
+## ⭐ Review Service (via Gateway)
+
+> O Gateway **mantém o prefixo `/reviews`** para FastAPI.
+
+### Criar review (🔒 login obrigatório)
+
+```
+POST /reviews
+```
+
+Headers:
+
+```
+Authorization: Bearer <TOKEN>
+```
+
+Body:
+
+```json
+{
+  "game_id": "UUID_DO_JOGO",
+  "rating": 5,
+  "comment": "Jogo incrível, muito bem feito!"
+}
+```
+
+---
+
+### Listar reviews por jogo
+
+```
+GET /reviews/game/:gameId
+```
+
+---
+
+### Listar reviews por utilizador
+
+```
+GET /reviews/user/:userId
+```
+
+---
+
+## 📊 Analytics Service (GraphQL)
+
+Endpoint:
+
+```
+POST /analytics
+```
+
+Headers:
+
+```
+Content-Type: application/json
+```
+
+---
+
+### Query: Top Games
+
+```json
+{
+  "query": "query { topGames(limit: 5) { game { id title genre price downloads } averageRating reviewsCount downloads } }"
+}
+```
+
+---
+
+### Query: Estatísticas de um jogo
+
+```json
+{
+  "query": "query ($id: ID!) { gameStats(gameId: $id) { game { title } averageRating reviewsCount downloads } }",
+  "variables": {
+    "id": "UUID_DO_JOGO"
+  }
+}
+```
+
+---
+
+### Query: Atividade de utilizador
+
+```json
+{
+  "query": "query ($uid: ID!) { userActivity(userId: $uid) { userId reviewsCount publishedGamesCount reviewedGames { id title } } }",
+  "variables": {
+    "uid": "USER_ID"
+  }
+}
+```
+
+---
+
+## 🔔 Notification Service (RabbitMQ)
+
+O Notification Service **não expõe endpoints HTTP**.
+
+### Queue utilizada
+
+```
+review_events
+```
+
+### Evento publicado (exemplo)
+
+```json
+{
+  "type": "review_created",
+  "gameId": "UUID_DO_JOGO",
+  "rating": 5,
+  "comment": "Excelente jogo!"
+}
+```
+
+Quando uma review é criada, este evento é publicado pelo Review Service e consumido pelo Notification Service.
+
+---
+
+=======
 ```   
+>>>>>>> 545f8a10f53687c6fad41e8cd4a05e6b52f03789
 Processos Assíncronos (RabbitMQ)
 
 A plataforma utiliza RabbitMQ para comunicação assíncrona, permitindo:
@@ -257,4 +473,3 @@ Podes utilizar o código como base de estudo, desde que mantenhas os devidos cr�
 [@Sérgio Alves](https://github.com/FenrirDrage)
 [@Beatriz Costa](https://github.com/xbeatriz)
 Desenvolvido no âmbito de projeto académico — ESMAD, TSIW 2025
-
