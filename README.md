@@ -174,7 +174,6 @@ O Gateway é o **single entry point**. Os prefixos são tratados conforme cada s
 
 ## 🔐 Auth Service
 
-<<<<<<< HEAD
 ### Registar utilizador
 
 ```
