@@ -20,9 +20,10 @@ mongoose.connect(process.env.MONGO_URL || "mongodb://localhost:27017/auth-servic
   .then(() => console.log("Connected to MongoDB"))
   .catch(err => console.error("Error connecting to MongoDB:", err));
 
-app.get("/", (req, res) => res.json({ service: "auth-service", status: "ok" }));
+app.get("/health", (req, res) => res.json({ service: "auth-service", status: "ok" }));
 
-app.use("/auth", authRoutes);
+//app.use("/auth", authRoutes);
+app.use("/", authRoutes);
 
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 

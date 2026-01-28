@@ -5,28 +5,38 @@ dotenv.config();
 const GAME_URL = process.env.GAME_URL || "http://localhost:4002";
 const REVIEW_URL = process.env.REVIEW_URL || "http://localhost:4003";
 
+async function safeGet(url) {
+  try {
+    const resp = await axios.get(url, { timeout: 10000 });
+    return resp.data;
+  } catch (err) {
+    console.error("Analytics fetch error:", err.message);
+    throw new Error("Failed to fetch analytics data");
+  }
+}
+
 async function fetchAllGames() {
-  const url = `${GAME_URL}/games`;
-  const resp = await axios.get(url, { timeout: 10000 });
-  return resp.data || [];
+  const url = `${GAME_URL}/`;
+  //const resp = await axios.get(url, { timeout: 10000 });
+  return await safeGet(`${GAME_URL}/`) || [];
 }
 
 async function fetchGameById(gameId) {
-  const url = `${GAME_URL}/games/${gameId}`;
-  const resp = await axios.get(url, { timeout: 10000 });
-  return resp.data;
+  const url = `${GAME_URL}/${gameId}`;
+  //const resp = await axios.get(url, { timeout: 10000 });
+  return await safeGet(`${GAME_URL}/${gameId}`);
 }
 
 async function fetchReviewsByGame(gameId) {
   const url = `${REVIEW_URL}/reviews/game/${gameId}`;
-  const resp = await axios.get(url, { timeout: 10000 });
-  return resp.data || [];
+  //const resp = await axios.get(url, { timeout: 10000 });
+  return await safeGet(`${REVIEW_URL}/reviews/game/${gameId}`) || [];
 }
 
 async function fetchReviewsByUser(userId) {
   const url = `${REVIEW_URL}/reviews/user/${userId}`;
-  const resp = await axios.get(url, { timeout: 10000 });
-  return resp.data || [];
+  //const resp = await axios.get(url, { timeout: 10000 });
+  return await safeGet(`${REVIEW_URL}/reviews/user/${userId}`) || [];
 }
 
 async function fetchGamesByDeveloper(developerId) {

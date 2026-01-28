@@ -1,44 +1,10 @@
 services:
   # =============================
-  # API GATEWAY
+  # AUTH MONGO
   # =============================
-  api-gateway:
-    build: ./api-gateway
-    ports:
-      - "8080:8080"
-    depends_on:
-      - auth-service
-      - game-service
-      - review-service
-      - analytics-service
-    environment:
-      - PORT=8080
-      - AUTH_URL=http://auth-service:4001
-      - GAME_URL=http://game-service:4002
-      - REVIEW_URL=http://review-service:4003
-      - ANALYTICS_URL=http://analytics-service:4004
-    networks:
-      - indiehub-network
-    restart: always
-
-  # =============================
-  # AUTH SERVICE (Node + Mongo)
-  # =============================
-  auth-service:
-    build: ./auth-service
-    environment:
-      - PORT=4001
-      - MONGO_URL=mongodb://auth-mongo:27017/authdb
-      - JWT_SECRET=supersecret
-    depends_on:
-      - auth-mongo
-    networks:
-      - indiehub-network
-    restart: always
-
   auth-mongo:
     image: mongo:6.0
-    platform: linux/amd64
+    container_name: auth-mongo
     volumes:
       - auth-mongo-data:/data/db
     ports:
@@ -50,33 +16,49 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: always
 
-  # =============================
-  # GAME SERVICE (Node + Postgres)
-  # =============================
-  game-service:
-    build: ./game-service
+  mongo-express:
+    image: mongo-express
+    container_name: mongo-express
+    ports:
+      - "8082:8081"
     environment:
-      - PORT=4002
-      - PG_HOST=games-postgres
-      - PG_PORT=5432
-      - PG_USER=postgres
-      - PG_PASSWORD=postgres
-      - PG_DB=gamesdb
+      ME_CONFIG_MONGODB_URL: mongodb://auth-mongo:27017
+      ME_CONFIG_BASICAUTH: "false"
     depends_on:
-      - games-postgres
+      auth-mongo:
+        condition: service_healthy
     networks:
       - indiehub-network
-    restart: always
 
+  # =============================
+  # AUTH SERVICE
+  # =============================
+  auth-service:
+    build: ./auth-service
+    container_name: auth-service
+    environment:
+      PORT: 4001
+      MONGO_URL: mongodb://auth-mongo:27017/authdb
+      JWT_SECRET: supersecret
+    depends_on:
+      auth-mongo:
+        condition: service_healthy
+    ports:
+      - "4001:4001"
+    networks:
+      - indiehub-network
+
+  # =============================
+  # POSTGRES (GAMES)
+  # =============================
   games-postgres:
     image: postgres:15
-    platform: linux/amd64
+    container_name: games-postgres
     environment:
-      - POSTGRES_USER=postgres
-      - POSTGRES_PASSWORD=postgres
-      - POSTGRES_DB=gamesdb
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+      POSTGRES_DB: gamesdb
     volumes:
       - games-postgres-data:/var/lib/postgresql/data
     ports:
@@ -88,105 +70,140 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: always
-
-  adminer:
-    image: adminer
-    ports:
-      - "8081:8080"
-    networks:
-      - indiehub-network
-    restart: always
 
   # =============================
-  # REVIEW SERVICE (Python + FastAPI + Mongo)
+  # GAME SERVICE
   # =============================
-  review-service:
-    build: ./review-service
+  game-service:
+    build: ./game-service
+    container_name: game-service
     environment:
-      - PORT=4003
-      - MONGO_URL=mongodb://review-mongo:27017/reviewsdb
-      - AUTH_URL=http://auth-service:4001/auth/verify
-      - RABBITMQ_HOST=rabbitmq
+      PORT: 4002
+      PG_HOST: games-postgres
+      PG_PORT: 5432
+      PG_USER: postgres
+      PG_PASSWORD: postgres
+      PG_DB: gamesdb
+      AUTH_URL: http://auth-service:4001
+      JWT_SECRET: supersecret
     depends_on:
-      - review-mongo
-      - auth-service
+      games-postgres:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    ports:
+      - "4002:4002"
     networks:
       - indiehub-network
-    restart: always
 
+  # =============================
+  # REVIEW MONGO
+  # =============================
   review-mongo:
-    image: bitnami/mongodb:latest
-    platform: linux/amd64
-    environment:
-      - MONGODB_ROOT_PASSWORD=postgres
-      - MONGODB_DATABASE=reviewsdb
+    image: mongo:6.0
+    container_name: review-mongo
     volumes:
-      - review-mongo-data:/bitnami/mongodb
+      - review-mongo-data:/data/db
     ports:
       - "27019:27017"
     networks:
       - indiehub-network
     healthcheck:
-      test: [ "CMD-SHELL", "mongosh --eval \"db.adminCommand('ping')\" || exit 1" ]
+      test: [ "CMD", "mongosh", "--eval", "db.adminCommand('ping')" ]
       interval: 10s
       timeout: 5s
       retries: 5
-    restart: always
 
-  mongo-express:
-    image: mongo-express
-    restart: always
-    ports:
-      - "8082:8081"
+  # =============================
+  # REVIEW SERVICE
+  # =============================
+  review-service:
+    build: ./review-service
+    container_name: review-service
     environment:
-      ME_CONFIG_MONGODB_SERVER: review-mongo
-      ME_CONFIG_MONGODB_PORT: 27017
-      ME_CONFIG_MONGODB_ADMINUSERNAME: root
-      ME_CONFIG_MONGODB_ADMINPASSWORD: postgres
-      ME_CONFIG_BASICAUTH: "false"
+      PORT: 4003
+      MONGO_URL: mongodb://review-mongo:27017/reviewsdb
+      AUTH_URL: http://auth-service:4001
+      RABBITMQ_HOST: rabbitmq
     depends_on:
-      - review-mongo
+      review-mongo:
+        condition: service_healthy
+      auth-service:
+        condition: service_started
+    ports:
+      - "4003:4003"
     networks:
       - indiehub-network
 
   # =============================
-  # ANALYTICS (Node + GraphQL)
-  # =============================
-  analytics-service:
-    build: ./analytics-service
-    ports:
-      - "4004:4004"
-    environment:
-      - PORT=4004
-      - GAME_SERVICE_URL=http://game-service:4002
-      - REVIEW_SERVICE_URL=http://review-service:4003
-    depends_on:
-      - game-service
-      - review-service
-    networks:
-      - indiehub-network
-    restart: always
-
-  # =============================
-  # RABBITMQ (ASYNC)
+  # RABBITMQ
   # =============================
   rabbitmq:
     image: rabbitmq:3-management
+    container_name: rabbitmq
     ports:
       - "5672:5672"
       - "15672:15672"
     networks:
       - indiehub-network
-    restart: always
 
+  # =============================
+  # NOTIFICATION SERVICE
+  # =============================
   notification-service:
     build: ./notification-service
+    container_name: notification-service
     depends_on:
-      - rabbitmq
+      rabbitmq:
+        condition: service_started
     networks:
       - indiehub-network
-    restart: always
+
+  # =============================
+  # ANALYTICS SERVICE
+  # =============================
+  analytics-service:
+    build: ./analytics-service
+    container_name: analytics-service
+    environment:
+      PORT: 4004
+      GAME_SERVICE_URL: http://game-service:4002
+      REVIEW_SERVICE_URL: http://review-service:4003
+    depends_on:
+      game-service:
+        condition: service_started
+      review-service:
+        condition: service_started
+    ports:
+      - "4004:4004"
+    networks:
+      - indiehub-network
+
+  # =============================
+  # API GATEWAY
+  # =============================
+  api-gateway:
+    build: ./api-gateway
+    container_name: api-gateway
+    environment:
+      PORT: 8080
+      AUTH_URL: http://auth-service:4001
+      GAME_URL: http://game-service:4002
+      REVIEW_URL: http://review-service:4003
+      ANALYTICS_URL: http://analytics-service:4004
+    depends_on:
+      auth-service:
+        condition: service_started
+      game-service:
+        condition: service_started
+      review-service:
+        condition: service_started
+      analytics-service:
+        condition: service_started
+    ports:
+      - "8080:8080"
+    networks:
+      - indiehub-network
 
 networks:
   indiehub-network:
@@ -196,5 +213,3 @@ volumes:
   auth-mongo-data:
   review-mongo-data:
   games-postgres-data:
-
-

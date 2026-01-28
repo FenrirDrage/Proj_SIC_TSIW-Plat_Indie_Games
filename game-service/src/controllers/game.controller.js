@@ -4,7 +4,7 @@ export const GameController = {
   async create(req, res) {
     try {
      
-      const developerId = req.user?.id;
+      const developerId = req.user?.id || req.user?._id;
       if (!developerId) return res.status(401).json({ error: "Login required" });
 
       const game = await GameService.create(req.body, developerId);

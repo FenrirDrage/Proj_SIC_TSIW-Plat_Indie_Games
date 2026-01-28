@@ -1,6 +1,5 @@
 import axios from "axios";
 
-
 const AUTH_URL = process.env.AUTH_URL || "http://localhost:4001";
 
 export default async function authMiddleware(req, res, next) {
@@ -14,7 +13,7 @@ export default async function authMiddleware(req, res, next) {
 
     // Serviço Auth verifica o endpoint
     
-    const verifyUrl = `${AUTH_URL}/auth/verify`;
+    const verifyUrl = `${AUTH_URL}/verify`;
     const resp = await axios.post(verifyUrl, {}, {
       headers: { Authorization: `Bearer ${token}` },
       timeout: 5000

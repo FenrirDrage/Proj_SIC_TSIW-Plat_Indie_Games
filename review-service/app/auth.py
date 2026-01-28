@@ -19,7 +19,7 @@ async def get_current_user(authorization: str = Header(None)):
 
     try:
         async with httpx.AsyncClient(timeout=5.0) as client:
-            resp = await client.post(f"{AUTH_URL}/auth/verify", headers={"Authorization": f"Bearer {token}"})
+            resp = await client.post(f"{AUTH_URL}/verify", headers={"Authorization": f"Bearer {token}"})
             if resp.status_code != 200:
                 raise HTTPException(status_code=resp.status_code, detail="Token Invalid")
             data = resp.json()

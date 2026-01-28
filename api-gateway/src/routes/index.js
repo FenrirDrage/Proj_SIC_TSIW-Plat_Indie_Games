@@ -4,27 +4,32 @@ import authMiddleware from "../middlewares/auth.js";
 
 const router = express.Router();
 
-const AUTH_URL = process.env.AUTH_URL || "http://localhost:4001";
-const GAME_URL = process.env.GAME_URL || "http://localhost:4002";
-const REVIEW_URL = process.env.REVIEW_URL || "http://localhost:4003";
-const ANALYTICS_URL = process.env.ANALYTICS_URL || "http://localhost:4004";
+const AUTH_URL = process.env.AUTH_URL || "http://auth-service:4001";
+const GAME_URL = process.env.GAME_URL || "http://game-service:4002";
+const REVIEW_URL = process.env.REVIEW_URL || "http://review-service:4003";
+const ANALYTICS_URL = process.env.ANALYTICS_URL || "http://analytics-service:4004";
 
-// Proxy helper
+/*=============================
+ * Proxy genérico (REMOVE prefixo)
+ * Usado por auth, games, analytics
+ * =============================*/
 async function proxyRequest(req, res, targetBase) {
-  //const targetUrl = `${targetBase}${req.originalUrl.replace(/^\/[^/]+/, "")}`; 
-  const targetUrl = `${targetBase}${req.originalUrl}`;
+  const path = req.originalUrl.replace(/^\/[^/]+/, "") || "/";
+  const targetUrl = `${targetBase}${path}`;
+
   try {
-    const axiosConfig = {
+    const resp = await axios({
       url: targetUrl,
       method: req.method,
-      //headers: { ...req.headers, host: undefined }, 
-      headers: { "content-type": "application/json", authorization: req.headers.authorization },
+      headers: {
+        Authorization: req.headers.authorization,
+        "Content-Type": "application/json"
+      },
       params: req.query,
       data: req.body,
       timeout: 15000
-    };
+    });
 
-    const resp = await axios(axiosConfig);
     res.status(resp.status).json(resp.data);
   } catch (err) {
     if (err.response) {
@@ -36,33 +41,88 @@ async function proxyRequest(req, res, targetBase) {
   }
 }
 
-//Rotas publicas que não exigem autenticação
- 
-router.use("/auth", (req, res) => proxyRequest(req, res, AUTH_URL));
+/*=============================
+ * Proxy ESPECÍFICO para reviews
+ * NÃO remove prefixo (/reviews)
+ * ============================*/
+async function proxyReview(req, res) {
+  const targetUrl = `${REVIEW_URL}${req.originalUrl}`;
 
-// Games endpoints
- 
-router.get("/games*", (req, res) => proxyRequest(req, res, GAME_URL));
+  try {
+    const resp = await axios({
+      url: targetUrl,
+      method: req.method,
+      headers: {
+        Authorization: req.headers.authorization,
+        "Content-Type": "application/json"
+      },
+      params: req.query,
+      data: req.body,
+      timeout: 15000
+    });
 
-// Proteção POST/PUT/DELETE on /games
+    res.status(resp.status).json(resp.data);
+  } catch (err) {
+    if (err.response) {
+      res.status(err.response.status).json(err.response.data);
+    } else {
+      console.error("Review proxy error:", err.message);
+      res.status(502).json({ error: "Bad Gateway", message: err.message });
+    }
+  }
+}
 
-router.post("/games*", authMiddleware, (req, res) => proxyRequest(req, res, GAME_URL));
-router.put("/games/*", authMiddleware, (req, res) => proxyRequest(req, res, GAME_URL));
-router.delete("/games/*", authMiddleware, (req, res) => proxyRequest(req, res, GAME_URL));
+/*=============================
+ * AUTH (public)
+ * =============================*/
+router.use("/auth", (req, res) =>
+  proxyRequest(req, res, AUTH_URL)
+);
 
-// Reviews endpoints
- 
-router.get("/reviews*", (req, res) => proxyRequest(req, res, REVIEW_URL));
-router.post("/reviews*", authMiddleware, (req, res) => proxyRequest(req, res, REVIEW_URL));
-router.put("/reviews/*", authMiddleware, (req, res) => proxyRequest(req, res, REVIEW_URL));
-router.delete("/reviews/*", authMiddleware, (req, res) => proxyRequest(req, res, REVIEW_URL));
+/*=============================
+ * GAMES
+ * Prefixo removido → game-service usa /
+ * =============================*/
+// Public
+router.get("/games*", (req, res) =>
+  proxyRequest(req, res, GAME_URL)
+);
 
-// Analytics - graphQL reve auth para algumas queries/mutations
+// Protected
+router.post("/games*", authMiddleware, (req, res) =>
+  proxyRequest(req, res, GAME_URL)
+);
 
-router.use("/analytics", (req, res) => proxyRequest(req, res, ANALYTICS_URL));
+router.put("/games*", authMiddleware, (req, res) =>
+  proxyRequest(req, res, GAME_URL)
+);
 
-//  Outro caminho -> 404
+router.delete("/games*", authMiddleware, (req, res) =>
+  proxyRequest(req, res, GAME_URL)
+);
 
-router.use((req, res) => res.status(404).json({ error: "Not found in API Gateway" }));
+/*=============================
+ * REVIEWS
+ * Prefixo MANTIDO → FastAPI usa /reviews
+ * =============================*/
+router.post("/reviews", authMiddleware, proxyReview);
+router.get("/reviews/game/:id", proxyReview);
+router.get("/reviews/user/:id", proxyReview);
+router.put("/reviews/:id", authMiddleware, proxyReview);
+router.delete("/reviews/:id", authMiddleware, proxyReview);
+
+/* =============================
+ * ANALYTICS (GraphQL)
+ * ============================= */
+router.use("/analytics", (req, res) =>
+  proxyRequest(req, res, ANALYTICS_URL)
+);
+
+/*=============================
+ * FALLBACK
+ * =============================*/
+router.use((req, res) =>
+  res.status(404).json({ error: "Not found in API Gateway" })
+);
 
 export default router;

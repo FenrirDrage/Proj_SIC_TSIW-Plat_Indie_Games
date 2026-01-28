@@ -2,6 +2,8 @@ import axios from "axios";
 
 const AUTH_URL = process.env.AUTH_URL || null;
 
+console.log("GAME-SERVICE AUTH_URL =", AUTH_URL);
+
 export default async function authMiddleware(req, res, next) {
   try {
     const authHeader = req.headers["authorization"] || req.headers["Authorization"];
@@ -15,10 +17,12 @@ export default async function authMiddleware(req, res, next) {
       return next();
     }
 
-    const resp = await axios.post(`${AUTH_URL}/auth/verify`, {}, {
+    const resp = await axios.post(`${AUTH_URL}/verify`, {}, {
       headers: { Authorization: `Bearer ${token}` },
       timeout: 5000
     });
+
+    console.log("VERIFY RESPONSE DATA =", resp.data);
 
     req.user = resp.data.user || resp.data;
     return next();

@@ -1,4 +1,3 @@
-# Use official Node LTS
 FROM node:18-alpine
 
 WORKDIR /app
@@ -8,7 +7,5 @@ RUN npm install --silent
 
 COPY . .
 
-ENV NODE_ENV=production
-EXPOSE 8080
-
+EXPOSE 4001
 CMD ["node", "src/server.js"]

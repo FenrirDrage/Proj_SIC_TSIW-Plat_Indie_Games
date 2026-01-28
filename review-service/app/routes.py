@@ -8,9 +8,9 @@ from .service import ReviewService
 
 router = APIRouter(prefix="/reviews", tags=["Reviews"])
 
-@router.post("/", response_model=ReviewOut, summary="Create new review")
+@router.post("", response_model=ReviewOut, summary="Create new review")
 async def create_review(data: ReviewCreate, user=Depends(get_current_user)):
-    created = await ReviewService.create(user_id=user["id"], data=data.dict())
+    created = await ReviewService.create(user_id=user["_id"], data=data.dict())
     return created
 
 @router.get("/game/{game_id}", summary="List reviews by game")
