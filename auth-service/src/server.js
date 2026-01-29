@@ -10,21 +10,23 @@ dotenv.config();
 
 const app = express();
 const PORT = process.env.PORT || 4001;
+const MONGO_URI = process.env.MONGO_URI;
+
+console.log("🔐 AUTH MONGO_URI =", MONGO_URI);
+
+if (!MONGO_URI) {
+  console.error("❌ MONGO_URI não definido");
+  process.exit(1);
+}
 
 app.use(cors());
 app.use(express.json());
-//app.use(express.raw({ type: '*/*' }));
 
-// Ligação à base de dados MongoDB
-mongoose.connect(process.env.MONGO_URL || "mongodb://localhost:27017/auth-service")
-  .then(() => console.log("Connected to MongoDB"))
-  .catch(err => console.error("Error connecting to MongoDB:", err));
+app.get("/health", (req, res) =>
+  res.json({ service: "auth-service", status: "ok" })
+);
 
-app.get("/health", (req, res) => res.json({ service: "auth-service", status: "ok" }));
-
-//app.use("/auth", authRoutes);
 app.use("/", authRoutes);
-
 app.use("/docs", swaggerUi.serve, swaggerUi.setup(swaggerDocs));
 
 app.use((err, req, res, next) => {
@@ -32,6 +34,16 @@ app.use((err, req, res, next) => {
   res.status(500).json({ error: "Server error" });
 });
 
-app.listen(PORT, () => {
-  console.log(`Auth service running on port ${PORT}`);
-});
+// ⛔ NUNCA arrancar o servidor antes da BD
+mongoose
+  .connect(MONGO_URI)
+  .then(() => {
+    console.log("✅ MongoDB ligado (Auth Service)");
+    app.listen(PORT, "0.0.0.0", () => {
+      console.log(`🔐 Auth Service running on port ${PORT}`);
+    });
+  })
+  .catch((err) => {
+    console.error("❌ Erro ao ligar ao MongoDB:", err.message);
+    process.exit(1);
+  });

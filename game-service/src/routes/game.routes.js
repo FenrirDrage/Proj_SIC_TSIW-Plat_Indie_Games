@@ -1,33 +1,44 @@
-import express from "express";
-import { GameController } from "../controllers/game.controller.js";
-import authMiddleware from "../middlewares/auth.js";
+import axios from "axios";
 
-const router = express.Router();
+const authMiddleware = async (req, res, next) => {
+  try {
+    const authHeader = req.headers.authorization;
 
-// Public
-router.get("/", GameController.list);
-router.get("/:id", GameController.getById);
+    if (!authHeader) {
+      return res.status(401).json({ error: "Login required" });
+    }
 
-// Protected (developer)
-router.post("/", authMiddleware, async (req, res, next) => {
-  if (!req.user) {
-    return res.status(401).json({ error: "Login required" });
+    // Esperado: "Bearer <token>"
+    const [type, token] = authHeader.split(" ");
+
+    if (type !== "Bearer" || !token) {
+      return res.status(401).json({ error: "Invalid authorization header" });
+    }
+
+    if (!process.env.AUTH_SERVICE_URL) {
+      console.error("❌ AUTH_SERVICE_URL não definido");
+      return res.status(500).json({ error: "Auth service not configured" });
+    }
+
+    // Chamada ao Auth Service para validar o token
+    const response = await axios.post(
+      process.env.AUTH_SERVICE_URL,
+      {},
+      {
+        headers: {
+          Authorization: `Bearer ${token}`,
+        },
+      }
+    );
+
+    // Guardar user validado
+    req.user = response.data;
+
+    return next();
+  } catch (err) {
+    console.error("❌ Auth middleware error:", err.response?.data || err.message);
+    return res.status(401).json({ error: "Invalid or expired token" });
   }
-  return GameController.create(req, res, next);
-});
+};
 
-router.put("/:id", authMiddleware, async (req, res, next) => {
-  if (!req.user) {
-    return res.status(401).json({ error: "Login required" });
-  }
-  return GameController.update(req, res, next);
-});
-
-router.delete("/:id", authMiddleware, async (req, res, next) => {
-  if (!req.user) {
-    return res.status(401).json({ error: "Login required" });
-  }
-  return GameController.remove(req, res, next);
-});
-
-export default router;
+export default authMiddleware;

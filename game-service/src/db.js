@@ -9,11 +9,12 @@ dotenv.config();
 const { Pool } = pkg;
 
 const pool = new Pool({
-  host: process.env.PG_HOST || "localhost",
+  connectionString: process.env.PG_URL,
+  /*host: process.env.PG_HOST || "localhost",
   port: process.env.PG_PORT ? Number(process.env.PG_PORT) : 5432,
   user: process.env.PG_USER || "postgres",
   password: process.env.PG_PASSWORD || "postgres",
-  database: process.env.PG_DB || "games",
+  database: process.env.PG_DB || "games",*/
   max: 10
 });
 
